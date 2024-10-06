@@ -25,20 +25,27 @@ impl Language {
         }
     }
 }
+impl Default for Language {
+    fn default() -> Self {
+        Self::Other
+    }
+}
 
+#[derive(Default)]
 struct Stats {
     total_lines: usize,
     blank_lines: usize,
+    functions: usize,
+    variables: usize,
+    loops: usize,
     language: Language,
 }
 
 impl Stats {
     fn new(filename: &str) -> Self {
-        let mut stats = Self {
-            total_lines: 0,
-            blank_lines: 0,
-            language: Language::new(filename),
-        };
+        let mut stats = Self::default();
+        stats.language = Language::new(filename);
+
         stats.update(filename);
         return stats;
     }
@@ -46,6 +53,23 @@ impl Stats {
     fn update(&mut self, filename: &str) {
         let content = fs::read_to_string(filename).unwrap();
 
+        let mut parser = TS::Parser::new();
+        self.language.set_language(&mut parser);
+
+        let tree = parser.parse(&content, None).unwrap();
+        let root_node = tree.root_node();
+
+        let mut cursor = root_node.walk();
+
+        while let Some(node) = Self::next_node(&mut cursor) {
+            if node.kind() == "function_item" {
+                self.functions += 1;
+            } else if node.kind() == "let" {
+                self.variables += 1;
+            } else if node.kind() == "for_expression" || node.kind() == "loop_expression" || node.kind() == "while_expression" {
+                self.loops += 1;
+            }
+        }
         for line in content.lines() {
             self.total_lines += 1;
             if line.trim().is_empty() {
@@ -54,17 +78,37 @@ impl Stats {
         }
     }
 
+    fn next_node<'a>(cursor: &mut TS::TreeCursor<'a>) -> Option<TS::Node<'a>> {
+        if cursor.goto_first_child() {
+            return Some(cursor.node());
+        }
+
+        if cursor.goto_next_sibling() {
+            return Some(cursor.node());
+        }
+
+        loop {
+            if !cursor.goto_parent() {
+                return None;
+            }
+            if cursor.goto_next_sibling() {
+                return Some(cursor.node());
+            }
+        }
+    }
+
     fn print(&self) {
         println!("Language: {:?}", self.language);
         println!("Total lines: {}", self.total_lines);
         println!("Blank lines: {}", self.blank_lines);
+        println!("Functions: {}", self.functions);
+        println!("Variables: {}", self.variables);
+        println!("Loops: {}", self.loops);
     }
 }
 
 fn parse_file(language_map: &mut HashMap<Language, Stats>, filename: &str) {
-    let mut parser = TS::Parser::new();
     let language = Language::new(filename);
-    language.set_language(&mut parser);
     if let Some(l) = language_map.get_mut(&language) {
         l.update(filename);
     } else {
