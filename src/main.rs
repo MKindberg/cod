@@ -53,8 +53,8 @@ impl Language for Other {
     fn name(&self) -> &str {
         "Other"
     }
-    fn matches_filename(&self, filename: &str) -> bool {
-        filename.ends_with(".rs")
+    fn matches_filename(&self, _: &str) -> bool {
+        true
     }
     fn language(&self) -> Option<TS::Language> {
         None
@@ -87,7 +87,9 @@ impl Stats {
     }
 
     fn update(&mut self, filename: &str, language: &Box<dyn Language>) {
-        let content = fs::read_to_string(filename).unwrap();
+        let Ok(content) = fs::read_to_string(filename) else {
+            return;
+        };
 
         if let Some(lang) = language.language() {
             let mut parser = TS::Parser::new();
@@ -166,6 +168,23 @@ fn parse_file<'a>(
                 language_map.insert(l.name(), Stats::new());
             }
             language_map.get_mut(l.name()).unwrap().update(filename, l);
+            break;
+        }
+    }
+}
+
+fn parse_dir<'a>(
+    languages: &'a Vec<Box<dyn Language>>,
+    language_map: &mut HashMap<&'a str, Stats>,
+    dirname: &str,
+) {
+    for entry in fs::read_dir(dirname).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if path.is_dir() {
+            parse_dir(languages, language_map, path.to_str().unwrap());
+        } else {
+            parse_file(languages, language_map, path.to_str().unwrap());
         }
     }
 }
@@ -177,6 +196,8 @@ fn main() {
     for arg in args {
         if std::path::Path::new(&arg).is_file() {
             parse_file(&languages, &mut language_map, &arg);
+        } else if std::path::Path::new(&arg).is_dir() {
+            parse_dir(&languages, &mut language_map, &arg);
         }
     }
 
