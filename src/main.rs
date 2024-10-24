@@ -147,13 +147,13 @@ impl Stats {
         }
     }
 
+    fn print_header() {
+        println!("Language\tTotal lines\tBlank lines\tFunctions\tVariables\tLoops");
+        println!("---------------------------------------------------------------------------------------");
+    }
+
     fn print(&self, name: &str) {
-        println!("Language: {:?}", name);
-        println!("Total lines: {}", self.total_lines);
-        println!("Blank lines: {}", self.blank_lines);
-        println!("Functions: {}", self.functions);
-        println!("Variables: {}", self.variables);
-        println!("Loops: {}", self.loops);
+        println!("{}\t\t{}\t\t{}\t\t{}\t\t{}\t\t{}", name, self.total_lines, self.blank_lines, self.functions, self.variables, self.loops);
     }
 }
 
@@ -201,6 +201,7 @@ fn main() {
         }
     }
 
+    Stats::print_header();
     for (k, v) in language_map.iter() {
         v.print(k);
     }
