@@ -150,20 +150,23 @@ impl Stats {
     }
 
     fn print_header() {
-        println!("Language\tFiles\tTotal lines\tBlank lines\tFunctions\tVariables\tLoops");
-        println!("---------------------------------------------------------------------------------------");
+        println!(
+            "{:15}{:15}{:15}{:15}{:15}{:15}{:15}",
+            "Language", "Files", "Total lines", "Blank lines", "Functions", "Variables", "Loops",
+        );
+        println!("{:-<width$}", "", width = 7 * 15);
     }
 
     fn print(&self, name: &str) {
         println!(
-            "{}\t\t{}\t{}\t\t{}\t\t{}\t\t{}\t\t{}",
+            "{:<15}{:<15}{:<15}{:<15}{:<15}{:<15}{:<15}",
             name,
             self.files,
             self.total_lines,
             self.blank_lines,
             self.functions,
             self.variables,
-            self.loops
+            self.loops,
         );
     }
 }
