@@ -43,7 +43,11 @@ impl Language for Rust {
         Some("(function_item)")
     }
     fn variable_query(&self) -> Option<&str> {
-        Some("(let_declaration)")
+        Some("
+(let_declaration)
+(const_item)
+(static_item)
+")
     }
 }
 

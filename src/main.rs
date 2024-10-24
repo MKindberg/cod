@@ -34,6 +34,7 @@ impl Stats {
 
             let tree = parser.parse(&content, None).unwrap();
             let root_node = tree.root_node();
+            //Self::print_nodes(&root_node);
 
             let mut query_cursor = TS::QueryCursor::new();
 
@@ -66,6 +67,12 @@ impl Stats {
         }
     }
 
+    fn print_nodes(root_node: &TS::Node) {
+        let mut cursor = root_node.walk();
+        while let Some(node) = Self::next_node(&mut cursor) {
+            println!("{}", node.kind());
+        }
+    }
     fn next_node<'a>(cursor: &mut TS::TreeCursor<'a>) -> Option<TS::Node<'a>> {
         if cursor.goto_first_child() {
             return Some(cursor.node());
@@ -155,4 +162,19 @@ fn main() {
     for (k, v) in language_map.iter() {
         v.print(k);
     }
+}
+
+#[test]
+fn read_rust() {
+    let mut language_map: HashMap<&str, Stats> = HashMap::new();
+    let languages: Vec<Box<dyn Language>> = vec![Box::new(Rust {}), Box::new(Other {})];
+    parse_dir(&languages, &mut language_map, "test_files");
+    assert!(language_map.contains_key("Rust"));
+    let rust = language_map.get("Rust").unwrap();
+    assert_eq!(rust.files, 1);
+    assert_eq!(rust.total_lines, 25);
+    assert_eq!(rust.blank_lines, 2);
+    assert_eq!(rust.functions, 2);
+    assert_eq!(rust.variables, 4);
+    assert_eq!(rust.loops, 3);
 }
