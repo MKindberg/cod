@@ -1,74 +1,10 @@
+mod languages;
+
+use languages::{Language, Other, Rust};
 use std::collections::hash_map::HashMap;
 use std::fs;
 use streaming_iterator::StreamingIterator;
 use tree_sitter as TS;
-
-trait Language {
-    fn matches_filename(&self, filename: &str) -> bool;
-    fn name(&self) -> &str;
-    fn language(&self) -> Option<TS::Language> {
-        None
-    }
-    fn loop_query(&self) -> Option<&str> {
-        None
-    }
-    fn function_query(&self) -> Option<&str> {
-        None
-    }
-    fn variable_query(&self) -> Option<&str> {
-        None
-    }
-}
-
-struct Rust {}
-impl Language for Rust {
-    fn name(&self) -> &str {
-        "Rust"
-    }
-    fn matches_filename(&self, filename: &str) -> bool {
-        filename.ends_with(".rs")
-    }
-    fn language(&self) -> Option<TS::Language> {
-        Some(tree_sitter_rust::LANGUAGE.into())
-    }
-    fn loop_query(&self) -> Option<&str> {
-        Some(
-            "
-(for_expression)
-(while_expression)
-(loop_expression)
-",
-        )
-    }
-    fn function_query(&self) -> Option<&str> {
-        Some("(function_item)")
-    }
-    fn variable_query(&self) -> Option<&str> {
-        Some("(let_declaration)")
-    }
-}
-
-struct Other {}
-impl Language for Other {
-    fn name(&self) -> &str {
-        "Other"
-    }
-    fn matches_filename(&self, _: &str) -> bool {
-        true
-    }
-    fn language(&self) -> Option<TS::Language> {
-        None
-    }
-    fn loop_query(&self) -> Option<&str> {
-        None
-    }
-    fn function_query(&self) -> Option<&str> {
-        None
-    }
-    fn variable_query(&self) -> Option<&str> {
-        None
-    }
-}
 
 #[derive(Default)]
 struct Stats {
@@ -103,19 +39,19 @@ impl Stats {
 
             if let Some(query) = language.function_query() {
                 let function_query = TS::Query::new(&parser.language().unwrap(), query).unwrap();
-                self.functions = query_cursor
+                self.functions += query_cursor
                     .matches(&function_query, root_node, content.as_bytes())
                     .count();
             }
             if let Some(query) = language.variable_query() {
                 let variable_query = TS::Query::new(&parser.language().unwrap(), query).unwrap();
-                self.variables = query_cursor
+                self.variables += query_cursor
                     .matches(&variable_query, root_node, content.as_bytes())
                     .count();
             }
             if let Some(query) = language.loop_query() {
                 let loop_query = TS::Query::new(&parser.language().unwrap(), query).unwrap();
-                self.loops = query_cursor
+                self.loops += query_cursor
                     .matches(&loop_query, root_node, content.as_bytes())
                     .count();
             }
