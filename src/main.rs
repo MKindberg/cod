@@ -72,6 +72,7 @@ impl Language for Other {
 
 #[derive(Default)]
 struct Stats {
+    files: usize,
     total_lines: usize,
     blank_lines: usize,
     functions: usize,
@@ -120,6 +121,7 @@ impl Stats {
             }
         }
 
+        self.files += 1;
         for line in content.lines() {
             self.total_lines += 1;
             if line.trim().is_empty() {
@@ -148,12 +150,21 @@ impl Stats {
     }
 
     fn print_header() {
-        println!("Language\tTotal lines\tBlank lines\tFunctions\tVariables\tLoops");
+        println!("Language\tFiles\tTotal lines\tBlank lines\tFunctions\tVariables\tLoops");
         println!("---------------------------------------------------------------------------------------");
     }
 
     fn print(&self, name: &str) {
-        println!("{}\t\t{}\t\t{}\t\t{}\t\t{}\t\t{}", name, self.total_lines, self.blank_lines, self.functions, self.variables, self.loops);
+        println!(
+            "{}\t\t{}\t{}\t\t{}\t\t{}\t\t{}\t\t{}",
+            name,
+            self.files,
+            self.total_lines,
+            self.blank_lines,
+            self.functions,
+            self.variables,
+            self.loops
+        );
     }
 }
 
