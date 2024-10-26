@@ -1,6 +1,6 @@
 mod languages;
 
-use languages::{Language, Other, Rust};
+use languages::{Cpp, Language, Other, Rust};
 use std::collections::hash_map::HashMap;
 use std::fs;
 use streaming_iterator::StreamingIterator;
@@ -149,7 +149,8 @@ fn parse_dir<'a>(
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut language_map: HashMap<&str, Stats> = HashMap::new();
-    let languages: Vec<Box<dyn Language>> = vec![Box::new(Rust {}), Box::new(Other {})];
+    let languages: Vec<Box<dyn Language>> =
+        vec![Box::new(Rust {}), Box::new(Cpp {}), Box::new(Other {})];
     for arg in args {
         if std::path::Path::new(&arg).is_file() {
             parse_file(&languages, &mut language_map, &arg);
@@ -177,4 +178,19 @@ fn read_rust() {
     assert_eq!(rust.functions, 2);
     assert_eq!(rust.variables, 4);
     assert_eq!(rust.loops, 3);
+}
+
+#[test]
+fn read_cpp() {
+    let mut language_map: HashMap<&str, Stats> = HashMap::new();
+    let languages: Vec<Box<dyn Language>> = vec![Box::new(Cpp {}), Box::new(Other {})];
+    parse_dir(&languages, &mut language_map, "test_files");
+    assert!(language_map.contains_key("C++"));
+    let rust = language_map.get("C++").unwrap();
+    assert_eq!(rust.files, 1);
+    assert_eq!(rust.total_lines, 27);
+    assert_eq!(rust.blank_lines, 7);
+    assert_eq!(rust.functions, 2);
+    assert_eq!(rust.variables, 4);
+    assert_eq!(rust.loops, 4);
 }
