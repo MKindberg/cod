@@ -212,11 +212,42 @@ fn read_cpp() {
     let mut languages = languages::get_languages();
     parse_dir(&mut languages, &mut language_map, "test_files");
     assert!(language_map.contains_key("C++"));
-    let rust = language_map.get("C++").unwrap();
-    assert_eq!(rust.files, 1);
-    assert_eq!(rust.total_lines, 27);
-    assert_eq!(rust.blank_lines, 7);
-    assert_eq!(rust.functions, 2);
-    assert_eq!(rust.variables, 4);
-    assert_eq!(rust.loops, 4);
+    let cpp = language_map.get("C++").unwrap();
+    assert_eq!(cpp.files, 1);
+    assert_eq!(cpp.total_lines, 27);
+    assert_eq!(cpp.blank_lines, 7);
+    assert_eq!(cpp.functions, 2);
+    assert_eq!(cpp.variables, 4);
+    assert_eq!(cpp.loops, 4);
+}
+
+#[test]
+fn read_c() {
+    let mut language_map: HashMap<String, Stats> = HashMap::new();
+    let mut languages = languages::get_languages();
+    parse_dir(&mut languages, &mut language_map, "test_files");
+    assert!(language_map.contains_key("C"));
+    let c = language_map.get("C").unwrap();
+    assert_eq!(c.files, 1);
+    assert_eq!(c.total_lines, 22);
+    assert_eq!(c.blank_lines, 6);
+    assert_eq!(c.functions, 2);
+    assert_eq!(c.variables, 4);
+    assert_eq!(c.loops, 3);
+}
+
+#[test]
+fn read_zig() {
+    print_nodes("test_files/test.zig", tree_sitter_zig::LANGUAGE.into());
+    let mut language_map: HashMap<String, Stats> = HashMap::new();
+    let mut languages = languages::get_languages();
+    parse_dir(&mut languages, &mut language_map, "test_files");
+    assert!(language_map.contains_key("Zig"));
+    let zig = language_map.get("Zig").unwrap();
+    assert_eq!(zig.files, 1);
+    assert_eq!(zig.total_lines, 27);
+    assert_eq!(zig.blank_lines, 5);
+    assert_eq!(zig.functions, 2);
+    assert_eq!(zig.variables, 9);
+    assert_eq!(zig.loops, 4);
 }
