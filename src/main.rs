@@ -6,7 +6,6 @@ use std::fs;
 use streaming_iterator::StreamingIterator;
 use tree_sitter as TS;
 
-#[derive(Default)]
 struct Stats {
     files: usize,
     total_lines: usize,
@@ -17,17 +16,20 @@ struct Stats {
 }
 
 impl Stats {
-    fn new() -> Self {
-        let stats = Self::default();
+    const fn new() -> Self {
+        let stats = Self {
+            files: 0,
+            total_lines: 0,
+            blank_lines: 0,
+            functions: 0,
+            variables: 0,
+            loops: 0,
+        };
 
         return stats;
     }
 
-    fn update(&mut self, filename: &str, language: &Box<dyn Language>) {
-        let Ok(content) = fs::read_to_string(filename) else {
-            return;
-        };
-
+    fn update(&mut self, content: &str, language: &Box<dyn Language>) {
         if let Some(lang) = language.language() {
             let mut parser = TS::Parser::new();
             parser.set_language(&lang).unwrap();
@@ -121,10 +123,18 @@ fn parse_file<'a>(
 ) {
     for l in languages {
         if l.matches_filename(filename) {
+            let Ok(content) = fs::read_to_string(filename) else {
+                let name = "Binary";
+                if !language_map.contains_key(name) {
+                    language_map.insert(name, Stats::new());
+                }
+                language_map.get_mut(name).unwrap().files += 1;
+                return;
+            };
             if !language_map.contains_key(l.name()) {
                 language_map.insert(l.name(), Stats::new());
             }
-            language_map.get_mut(l.name()).unwrap().update(filename, l);
+            language_map.get_mut(l.name()).unwrap().update(&content, l);
             break;
         }
     }
