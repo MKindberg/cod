@@ -1,8 +1,21 @@
+use std::path::Path;
 use tree_sitter as TS;
 
 pub struct Rust {}
 pub struct Cpp {}
-pub struct Other {}
+pub struct Json {}
+pub struct Other {
+    pub file_endings: Vec<String>,
+}
+
+pub fn get_languages() -> Vec<Box<dyn Language>> {
+    vec![
+        Box::new(Rust {}),
+        Box::new(Cpp {}),
+        Box::new(Json {}),
+        Other::new(),
+    ]
+}
 
 pub trait Language {
     fn matches_filename(&self, filename: &str) -> bool;
@@ -19,6 +32,8 @@ pub trait Language {
     fn variable_query(&self) -> Option<&str> {
         None
     }
+    fn filename_callback(&mut self, _: &str) {}
+    fn print(&self) {}
 }
 
 impl Language for Rust {
@@ -89,11 +104,42 @@ impl Language for Cpp {
     }
 }
 
+impl Language for Json {
+    fn name(&self) -> &str {
+        "JSON"
+    }
+    fn matches_filename(&self, filename: &str) -> bool {
+        filename.ends_with(".json")
+    }
+}
+
+impl Other {
+    pub fn new() -> Box<Self> {
+        Box::new(Self {
+            file_endings: vec![],
+        })
+    }
+}
 impl Language for Other {
     fn name(&self) -> &str {
         "Other"
     }
     fn matches_filename(&self, _: &str) -> bool {
         true
+    }
+    fn filename_callback(&mut self, filename: &str) {
+        let p = Path::new(filename);
+        if let Some(ext) = p.extension() {
+            let s = ext.to_str().unwrap();
+            if !self.file_endings.contains(&s.to_string()) {
+                self.file_endings.push(s.to_string());
+            }
+        }
+    }
+    fn print(&self) {
+        println!("Other file endings:");
+        for ending in &self.file_endings {
+            println!("  {}", ending);
+        }
     }
 }

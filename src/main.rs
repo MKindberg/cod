@@ -1,6 +1,6 @@
 mod languages;
 
-use languages::{Cpp, Language, Other, Rust};
+use languages::Language;
 use std::collections::hash_map::HashMap;
 use std::fs;
 use streaming_iterator::StreamingIterator;
@@ -29,7 +29,7 @@ impl Stats {
         return stats;
     }
 
-    fn update(&mut self, content: &str, language: &Box<dyn Language>) {
+    fn update(&mut self, content: &str, language: &mut Box<dyn Language>) {
         if let Some(lang) = language.language() {
             let mut parser = TS::Parser::new();
             parser.set_language(&lang).unwrap();
@@ -116,9 +116,9 @@ impl Stats {
     }
 }
 
-fn parse_file<'a>(
-    languages: &'a Vec<Box<dyn Language>>,
-    language_map: &mut HashMap<&'a str, Stats>,
+fn parse_file(
+    languages: &mut Vec<Box<dyn Language>>,
+    language_map: &mut HashMap<String, Stats>,
     filename: &str,
 ) {
     for l in languages {
@@ -126,23 +126,24 @@ fn parse_file<'a>(
             let Ok(content) = fs::read_to_string(filename) else {
                 let name = "Binary";
                 if !language_map.contains_key(name) {
-                    language_map.insert(name, Stats::new());
+                    language_map.insert(name.to_string(), Stats::new());
                 }
                 language_map.get_mut(name).unwrap().files += 1;
                 return;
             };
             if !language_map.contains_key(l.name()) {
-                language_map.insert(l.name(), Stats::new());
+                language_map.insert(l.name().to_string(), Stats::new());
             }
             language_map.get_mut(l.name()).unwrap().update(&content, l);
+            l.filename_callback(filename);
             break;
         }
     }
 }
 
-fn parse_dir<'a>(
-    languages: &'a Vec<Box<dyn Language>>,
-    language_map: &mut HashMap<&'a str, Stats>,
+fn parse_dir(
+    languages: &mut Vec<Box<dyn Language>>,
+    language_map: &mut HashMap<String, Stats>,
     dirname: &str,
 ) {
     for entry in fs::read_dir(dirname).unwrap() {
@@ -158,14 +159,17 @@ fn parse_dir<'a>(
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let mut language_map: HashMap<&str, Stats> = HashMap::new();
-    let languages: Vec<Box<dyn Language>> =
-        vec![Box::new(Rust {}), Box::new(Cpp {}), Box::new(Other {})];
+    let mut language_map: HashMap<String, Stats> = HashMap::new();
+    let mut languages = languages::get_languages();
+    let mut wanted_langs = vec![];
     for arg in args {
+        if arg.starts_with("--") {
+            wanted_langs.push(arg[2..].to_string());
+        }
         if std::path::Path::new(&arg).is_file() {
-            parse_file(&languages, &mut language_map, &arg);
+            parse_file(&mut languages, &mut language_map, &arg);
         } else if std::path::Path::new(&arg).is_dir() {
-            parse_dir(&languages, &mut language_map, &arg);
+            parse_dir(&mut languages, &mut language_map, &arg);
         }
     }
 
@@ -173,13 +177,19 @@ fn main() {
     for (k, v) in language_map.iter() {
         v.print(k);
     }
+    for l in languages.iter() {
+        if wanted_langs.contains(&l.name().to_lowercase()) {
+            println!();
+            l.print();
+        }
+    }
 }
 
 #[test]
 fn read_rust() {
-    let mut language_map: HashMap<&str, Stats> = HashMap::new();
-    let languages: Vec<Box<dyn Language>> = vec![Box::new(Rust {}), Box::new(Other {})];
-    parse_dir(&languages, &mut language_map, "test_files");
+    let mut language_map: HashMap<String, Stats> = HashMap::new();
+    let mut languages = languages::get_languages();
+    parse_dir(&mut languages, &mut language_map, "test_files");
     assert!(language_map.contains_key("Rust"));
     let rust = language_map.get("Rust").unwrap();
     assert_eq!(rust.files, 1);
@@ -192,9 +202,9 @@ fn read_rust() {
 
 #[test]
 fn read_cpp() {
-    let mut language_map: HashMap<&str, Stats> = HashMap::new();
-    let languages: Vec<Box<dyn Language>> = vec![Box::new(Cpp {}), Box::new(Other {})];
-    parse_dir(&languages, &mut language_map, "test_files");
+    let mut language_map: HashMap<String, Stats> = HashMap::new();
+    let mut languages = languages::get_languages();
+    parse_dir(&mut languages, &mut language_map, "test_files");
     assert!(language_map.contains_key("C++"));
     let rust = language_map.get("C++").unwrap();
     assert_eq!(rust.files, 1);
