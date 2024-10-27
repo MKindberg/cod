@@ -7,10 +7,10 @@ pub struct Other {
 }
 
 impl Other {
-    pub fn new() -> Box<Self> {
-        Box::new(Self {
+    pub fn new() -> Self {
+        Self {
             file_endings: vec![],
-        })
+        }
     }
 }
 impl Language for Other {
