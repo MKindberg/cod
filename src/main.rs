@@ -36,7 +36,6 @@ impl Stats {
 
             let tree = parser.parse(&content, None).unwrap();
             let root_node = tree.root_node();
-            //Self::print_nodes(&root_node);
 
             let mut query_cursor = TS::QueryCursor::new();
 
@@ -65,31 +64,6 @@ impl Stats {
             self.total_lines += 1;
             if line.trim().is_empty() {
                 self.blank_lines += 1;
-            }
-        }
-    }
-
-    fn print_nodes(root_node: &TS::Node) {
-        let mut cursor = root_node.walk();
-        while let Some(node) = Self::next_node(&mut cursor) {
-            println!("{}", node.kind());
-        }
-    }
-    fn next_node<'a>(cursor: &mut TS::TreeCursor<'a>) -> Option<TS::Node<'a>> {
-        if cursor.goto_first_child() {
-            return Some(cursor.node());
-        }
-
-        if cursor.goto_next_sibling() {
-            return Some(cursor.node());
-        }
-
-        loop {
-            if !cursor.goto_parent() {
-                return None;
-            }
-            if cursor.goto_next_sibling() {
-                return Some(cursor.node());
             }
         }
     }
@@ -181,6 +155,38 @@ fn main() {
         if wanted_langs.contains(&l.name().to_lowercase()) {
             println!();
             l.print();
+        }
+    }
+}
+
+fn print_nodes(filename: &str, lang: TS::Language) {
+    let content = fs::read_to_string(filename).unwrap();
+    let mut parser = TS::Parser::new();
+    parser.set_language(&lang).unwrap();
+
+    let tree = parser.parse(&content, None).unwrap();
+    let root_node = tree.root_node();
+    let mut cursor = root_node.walk();
+    while let Some(node) = next_node(&mut cursor) {
+        println!("{}", node.kind());
+    }
+}
+
+fn next_node<'a>(cursor: &mut TS::TreeCursor<'a>) -> Option<TS::Node<'a>> {
+    if cursor.goto_first_child() {
+        return Some(cursor.node());
+    }
+
+    if cursor.goto_next_sibling() {
+        return Some(cursor.node());
+    }
+
+    loop {
+        if !cursor.goto_parent() {
+            return None;
+        }
+        if cursor.goto_next_sibling() {
+            return Some(cursor.node());
         }
     }
 }
