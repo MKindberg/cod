@@ -1,8 +1,4 @@
-mod c;
-mod cpp;
 mod other;
-mod rust;
-mod zig;
 
 use tree_sitter as TS;
 
@@ -19,6 +15,39 @@ macro_rules! lang_struct {
             )*
             return false;
             }
+        }
+    };
+
+    ($name:ident,
+        ts $ts:ident,
+        loops $loops:expr,
+        functions $funcs:expr,
+        variables $vars:expr,
+        endings $($file_ending:expr),*
+        ) => {
+    pub struct $name {}
+    impl Language for $name {
+        fn name(&self) -> &str {
+            stringify!($name)
+        }
+        fn matches_filename(&self, filename: &str) -> bool {
+        $(
+            if filename.ends_with($file_ending) {return true;}
+        )*
+        return false;
+        }
+    fn language(&self) -> Option<TS::Language> {
+        Some($ts::LANGUAGE.into())
+    }
+    fn loop_query(&self) -> Option<&str> {
+        Some($loops)
+    }
+    fn function_query(&self) -> Option<&str> {
+        Some($funcs)
+    }
+    fn variable_query(&self) -> Option<&str> {
+        Some($vars)
+    }
         }
     };
 }
@@ -42,12 +71,45 @@ lang_struct!(Toml, ".toml");
 lang_struct!(Xml, ".xml");
 lang_struct!(Yaml, ".yaml", ".yml");
 
+lang_struct!(
+    Rust,
+    ts tree_sitter_rust,
+    loops "(for_expression) (while_expression) (loop_expression)",
+    functions "(function_item)",
+    variables "(let_declaration) (const_item) (static_item)",
+    endings ".rs"
+);
+lang_struct!(
+    Cpp,
+    ts tree_sitter_cpp,
+    loops "(for_range_loop) (for_statement) (while_statement) (do_statement)",
+    functions "(function_definition)",
+    variables "(declaration)",
+    endings ".cpp", ".hpp", ".cc", ".hh"
+);
+lang_struct!(
+    C,
+    ts tree_sitter_c,
+    loops "(for_statement) (while_statement) (do_statement)",
+    functions "(function_definition)",
+    variables "(declaration)",
+    endings ".c", ".h"
+);
+lang_struct!(
+    Zig,
+    ts tree_sitter_zig,
+    loops "(for_statement) (for_expression) (while_statement) (while_expression)",
+    functions "(function_declaration)",
+    variables "(variable_declaration)",
+    endings ".zig"
+);
+
 pub fn get_languages() -> Vec<Box<dyn Language>> {
     lang_vec!(
-        rust::Rust {},
-        cpp::Cpp {},
-        c::C {},
-        zig::Zig {},
+        Rust {},
+        Cpp {},
+        C {},
+        Zig {},
         Json {},
         Toml {},
         Markdown {},

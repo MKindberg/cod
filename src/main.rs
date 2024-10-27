@@ -211,8 +211,8 @@ fn read_cpp() {
     let mut language_map: HashMap<String, Stats> = HashMap::new();
     let mut languages = languages::get_languages();
     parse_dir(&mut languages, &mut language_map, "test_files");
-    assert!(language_map.contains_key("C++"));
-    let cpp = language_map.get("C++").unwrap();
+    assert!(language_map.contains_key("Cpp"));
+    let cpp = language_map.get("Cpp").unwrap();
     assert_eq!(cpp.files, 1);
     assert_eq!(cpp.total_lines, 27);
     assert_eq!(cpp.blank_lines, 7);
