@@ -1,6 +1,7 @@
 mod languages;
+mod language_utils;
 
-use languages::Language;
+use language_utils::Language;
 use std::collections::hash_map::HashMap;
 use std::fs;
 use streaming_iterator::StreamingIterator;
