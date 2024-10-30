@@ -1,5 +1,5 @@
-mod languages;
 mod language_utils;
+mod languages;
 
 use language_utils::Language;
 use std::collections::hash_map::HashMap;
@@ -116,18 +116,14 @@ fn parse_file(
     }
 }
 
-fn parse_dir(
-    languages: &mut Vec<Box<dyn Language>>,
-    language_map: &mut HashMap<String, Stats>,
-    dirname: &str,
-) {
+fn parse_dir(file_list: &mut Vec<String>, dirname: &str) {
     for entry in fs::read_dir(dirname).unwrap() {
         let entry = entry.unwrap();
         let path = entry.path();
         if path.is_dir() {
-            parse_dir(languages, language_map, path.to_str().unwrap());
+            parse_dir(file_list, path.to_str().unwrap());
         } else {
-            parse_file(languages, language_map, path.to_str().unwrap());
+            file_list.push(path.to_str().unwrap().to_string())
         }
     }
 }
@@ -137,15 +133,19 @@ fn main() {
     let mut language_map: HashMap<String, Stats> = HashMap::new();
     let mut languages = languages::get_languages();
     let mut wanted_langs = vec![];
+    let mut file_list = vec![];
     for arg in args {
         if arg.starts_with("--") {
             wanted_langs.push(arg[2..].to_string());
-        }
-        if std::path::Path::new(&arg).is_file() {
-            parse_file(&mut languages, &mut language_map, &arg);
+        } else if std::path::Path::new(&arg).is_file() {
+            file_list.push(arg);
         } else if std::path::Path::new(&arg).is_dir() {
-            parse_dir(&mut languages, &mut language_map, &arg);
+            parse_dir(&mut file_list, &arg);
         }
+    }
+
+    for file in file_list {
+        parse_file(&mut languages, &mut language_map, &file);
     }
 
     Stats::print_header();
@@ -196,7 +196,7 @@ fn next_node<'a>(cursor: &mut TS::TreeCursor<'a>) -> Option<TS::Node<'a>> {
 fn read_rust() {
     let mut language_map: HashMap<String, Stats> = HashMap::new();
     let mut languages = languages::get_languages();
-    parse_dir(&mut languages, &mut language_map, "test_files");
+    parse_file(&mut languages, &mut language_map, "test_files/test.rs");
     assert!(language_map.contains_key("Rust"));
     let rust = language_map.get("Rust").unwrap();
     assert_eq!(rust.files, 1);
@@ -211,7 +211,7 @@ fn read_rust() {
 fn read_cpp() {
     let mut language_map: HashMap<String, Stats> = HashMap::new();
     let mut languages = languages::get_languages();
-    parse_dir(&mut languages, &mut language_map, "test_files");
+    parse_file(&mut languages, &mut language_map, "test_files/test.cpp");
     assert!(language_map.contains_key("Cpp"));
     let cpp = language_map.get("Cpp").unwrap();
     assert_eq!(cpp.files, 1);
@@ -226,7 +226,7 @@ fn read_cpp() {
 fn read_c() {
     let mut language_map: HashMap<String, Stats> = HashMap::new();
     let mut languages = languages::get_languages();
-    parse_dir(&mut languages, &mut language_map, "test_files");
+    parse_file(&mut languages, &mut language_map, "test_files/test.c");
     assert!(language_map.contains_key("C"));
     let c = language_map.get("C").unwrap();
     assert_eq!(c.files, 1);
@@ -242,7 +242,7 @@ fn read_zig() {
     print_nodes("test_files/test.zig", tree_sitter_zig::LANGUAGE.into());
     let mut language_map: HashMap<String, Stats> = HashMap::new();
     let mut languages = languages::get_languages();
-    parse_dir(&mut languages, &mut language_map, "test_files");
+    parse_file(&mut languages, &mut language_map, "test_files/test.zig");
     assert!(language_map.contains_key("Zig"));
     let zig = language_map.get("Zig").unwrap();
     assert_eq!(zig.files, 1);
