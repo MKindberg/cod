@@ -121,6 +121,9 @@ fn parse_dir(file_list: &mut Vec<String>, dirname: &str) {
     for entry in fs::read_dir(dirname).unwrap() {
         let entry = entry.unwrap();
         let path = entry.path();
+        if path.file_name().unwrap().to_str().unwrap().starts_with(".") {
+            continue;
+        }
         if path.is_dir() {
             parse_dir(file_list, path.to_str().unwrap());
         } else {
