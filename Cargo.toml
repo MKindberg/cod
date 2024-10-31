@@ -10,6 +10,7 @@ streaming-iterator = "0.1.9"
 tree-sitter-cpp = "0.23.1"
 tree-sitter-c = "0.23.1"
 tree-sitter-zig = "1.0.2"
+clap = "4.5.20"
 
 [build-dependencies]
 cc="*"

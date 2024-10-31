@@ -1,6 +1,7 @@
 mod language_utils;
 mod languages;
 
+use clap::{Arg, Command};
 use language_utils::Language;
 use std::collections::hash_map::HashMap;
 use std::fs;
@@ -129,20 +130,56 @@ fn parse_dir(file_list: &mut Vec<String>, dirname: &str) {
 }
 
 fn main() {
-    let args: Vec<String> = std::env::args().skip(1).collect();
     let mut language_map: HashMap<String, Stats> = HashMap::new();
     let mut languages = languages::get_languages();
-    let mut wanted_langs = vec![];
     let mut file_list = vec![];
-    for arg in args {
-        if arg.starts_with("--") {
-            wanted_langs.push(arg[2..].to_string());
-        } else if std::path::Path::new(&arg).is_file() {
-            file_list.push(arg);
-        } else if std::path::Path::new(&arg).is_dir() {
-            parse_dir(&mut file_list, &arg);
+
+    let matches = Command::new("cod")
+        .author("mkindberg")
+        .about("Count code related metrics in files")
+        .arg(
+            Arg::new("ignore")
+                .short('i')
+                .long("ignore")
+                .action(clap::ArgAction::Append),
+        )
+        .arg(
+            Arg::new("language")
+                .short('l')
+                .long("language")
+                .action(clap::ArgAction::Append),
+        )
+        .arg(Arg::new("files").action(clap::ArgAction::Append))
+        .get_matches();
+
+    let ignore: Vec<String> = matches
+        .get_many::<String>("ignore")
+        .unwrap_or_default()
+        .cloned()
+        .collect();
+    let wanted_langs: Vec<String> = matches
+        .get_many::<String>("language")
+        .unwrap_or_default()
+        .cloned()
+        .collect();
+    let file_args: Vec<String> = matches
+        .get_many::<String>("files")
+        .unwrap_or_default()
+        .cloned()
+        .collect::<Vec<String>>();
+
+    for f in file_args {
+        if std::path::Path::new(&f).is_file() {
+            file_list.push(f);
+        } else if std::path::Path::new(&f).is_dir() {
+            parse_dir(&mut file_list, &f);
         }
     }
+    file_list = file_list
+        .iter()
+        .filter(|f| ignore.iter().filter(|i| f.contains(*i)).count() == 0)
+        .cloned()
+        .collect();
 
     for file in file_list {
         parse_file(&mut languages, &mut language_map, &file);
