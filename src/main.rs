@@ -152,7 +152,11 @@ fn main() {
                 .long("language")
                 .action(clap::ArgAction::Append),
         )
-        .arg(Arg::new("files").action(clap::ArgAction::Append))
+        .arg(
+            Arg::new("files")
+                .action(clap::ArgAction::Append)
+                .default_value("."),
+        )
         .get_matches();
 
     let ignore: Vec<glob::Pattern> = matches
