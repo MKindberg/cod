@@ -127,7 +127,7 @@ fn parse_dir(file_list: &mut Vec<String>, dirname: &str) {
         if path.is_dir() {
             parse_dir(file_list, path.to_str().unwrap());
         } else {
-            file_list.push(path.to_str().unwrap().to_string())
+            file_list.push(path.to_str().unwrap().trim_start_matches("./").to_string())
         }
     }
 }
@@ -155,10 +155,10 @@ fn main() {
         .arg(Arg::new("files").action(clap::ArgAction::Append))
         .get_matches();
 
-    let ignore: Vec<String> = matches
+    let ignore: Vec<glob::Pattern> = matches
         .get_many::<String>("ignore")
         .unwrap_or_default()
-        .cloned()
+        .map(|s| glob::Pattern::new(&s).unwrap())
         .collect();
     let wanted_langs: Vec<String> = matches
         .get_many::<String>("language")
@@ -180,7 +180,7 @@ fn main() {
     }
     file_list = file_list
         .iter()
-        .filter(|f| ignore.iter().filter(|i| f.contains(*i)).count() == 0)
+        .filter(|f| ignore.iter().filter(|i| i.matches(f)).count() == 0)
         .cloned()
         .collect();
 
