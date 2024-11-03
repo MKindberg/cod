@@ -117,15 +117,27 @@ fn parse_file(
     }
 }
 
-fn parse_dir(file_list: &mut Vec<String>, dirname: &str) {
+fn parse_dir(file_list: &mut Vec<String>, ignore_list: &mut Vec<glob::Pattern>, dirname: &str) {
     for entry in fs::read_dir(dirname).unwrap() {
         let entry = entry.unwrap();
         let path = entry.path();
+        if path.file_name().unwrap() == ".gitignore" {
+            let content = fs::read_to_string(&path).unwrap();
+            for line in content.lines() {
+                let l = line.trim();
+                if l.starts_with('#') || line.len() == 0 {
+                    continue;
+                }
+                let s: String = path.parent().unwrap().to_str().unwrap().to_string() + "/" + l + "*";
+                let pat = glob::Pattern::new(s.trim_start_matches("./")).unwrap();
+                ignore_list.push(pat);
+            }
+        }
         if path.file_name().unwrap().to_str().unwrap().starts_with(".") {
             continue;
         }
         if path.is_dir() {
-            parse_dir(file_list, path.to_str().unwrap());
+            parse_dir(file_list, ignore_list, path.to_str().unwrap());
         } else {
             file_list.push(path.to_str().unwrap().trim_start_matches("./").to_string())
         }
@@ -159,7 +171,7 @@ fn main() {
         )
         .get_matches();
 
-    let ignore: Vec<glob::Pattern> = matches
+    let mut ignore: Vec<glob::Pattern> = matches
         .get_many::<String>("ignore")
         .unwrap_or_default()
         .map(|s| glob::Pattern::new(&s).unwrap())
@@ -179,9 +191,10 @@ fn main() {
         if std::path::Path::new(&f).is_file() {
             file_list.push(f);
         } else if std::path::Path::new(&f).is_dir() {
-            parse_dir(&mut file_list, &f);
+            parse_dir(&mut file_list, &mut ignore, &f);
         }
     }
+
     file_list = file_list
         .iter()
         .filter(|f| ignore.iter().filter(|i| i.matches(f)).count() == 0)
