@@ -18,11 +18,28 @@ macro_rules! lang_struct {
     };
 
     ($name:ident,
+        ending $file_ending:expr,
         ts $ts:ident,
         loops $loops:expr,
         functions $funcs:expr,
         variables $vars:expr,
-        endings $($file_ending:expr),+
+        ) => {
+            lang_struct!(
+                $name,
+                endings ($file_ending),
+                ts $ts,
+                loops $loops,
+                functions $funcs,
+                variables $vars,
+            );
+    };
+
+    ($name:ident,
+        endings ($($file_endings:expr),+),
+        ts $ts:ident,
+        loops $loops:expr,
+        functions $funcs:expr,
+        variables $vars:expr,
         ) => {
     pub struct $name {}
     impl Language for $name {
@@ -31,7 +48,7 @@ macro_rules! lang_struct {
         }
         fn matches_filename(&self, filename: &str) -> bool {
             $(
-                if filename.ends_with($file_ending) {return true;}
+                if filename.ends_with($file_endings) {return true;}
             )+
             return false;
         }
