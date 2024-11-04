@@ -8,24 +8,22 @@ use std::fs;
 use streaming_iterator::StreamingIterator;
 use tree_sitter as TS;
 
+use language_utils::QType;
+
 struct Stats {
     files: usize,
     total_lines: usize,
     blank_lines: usize,
-    functions: usize,
-    variables: usize,
-    loops: usize,
+    operations: HashMap<QType, usize>,
 }
 
 impl Stats {
-    const fn new() -> Self {
+    fn new() -> Self {
         let stats = Self {
             files: 0,
             total_lines: 0,
             blank_lines: 0,
-            functions: 0,
-            variables: 0,
-            loops: 0,
+            operations: HashMap::new(),
         };
 
         return stats;
@@ -41,23 +39,13 @@ impl Stats {
 
             let mut query_cursor = TS::QueryCursor::new();
 
-            if let Some(query) = language.function_query() {
-                let function_query = TS::Query::new(&parser.language().unwrap(), query).unwrap();
-                self.functions += query_cursor
-                    .matches(&function_query, root_node, content.as_bytes())
+            for query in language.queries() {
+                let q = TS::Query::new(&parser.language().unwrap(), &query.query).unwrap();
+                let matches = query_cursor
+                    .matches(&q, root_node, content.as_bytes())
                     .count();
-            }
-            if let Some(query) = language.variable_query() {
-                let variable_query = TS::Query::new(&parser.language().unwrap(), query).unwrap();
-                self.variables += query_cursor
-                    .matches(&variable_query, root_node, content.as_bytes())
-                    .count();
-            }
-            if let Some(query) = language.loop_query() {
-                let loop_query = TS::Query::new(&parser.language().unwrap(), query).unwrap();
-                self.loops += query_cursor
-                    .matches(&loop_query, root_node, content.as_bytes())
-                    .count();
+                let count = self.operations.get(&query.qtype).unwrap_or(&0);
+                self.operations.insert(query.qtype, count + matches);
             }
         }
 
@@ -85,9 +73,9 @@ impl Stats {
             self.files,
             self.total_lines,
             self.blank_lines,
-            self.functions,
-            self.variables,
-            self.loops,
+            self.operations.get(&QType::Functions).unwrap_or(&0),
+            self.operations.get(&QType::Variables).unwrap_or(&0),
+            self.operations.get(&QType::Loops).unwrap_or(&0),
         );
     }
 }
@@ -128,7 +116,8 @@ fn parse_dir(file_list: &mut Vec<String>, ignore_list: &mut Vec<glob::Pattern>, 
                 if l.starts_with('#') || line.len() == 0 {
                     continue;
                 }
-                let s: String = path.parent().unwrap().to_str().unwrap().to_string() + "/" + l + "*";
+                let s: String =
+                    path.parent().unwrap().to_str().unwrap().to_string() + "/" + l + "*";
                 let pat = glob::Pattern::new(s.trim_start_matches("./")).unwrap();
                 ignore_list.push(pat);
             }
@@ -259,9 +248,9 @@ fn read_rust() {
     assert_eq!(rust.files, 1);
     assert_eq!(rust.total_lines, 25);
     assert_eq!(rust.blank_lines, 2);
-    assert_eq!(rust.functions, 2);
-    assert_eq!(rust.variables, 4);
-    assert_eq!(rust.loops, 3);
+    assert_eq!(rust.operations.get(&QType::Functions).unwrap(), &2);
+    assert_eq!(rust.operations.get(&QType::Variables).unwrap(), &4);
+    assert_eq!(rust.operations.get(&QType::Loops).unwrap(), &3);
 }
 
 #[test]
@@ -274,9 +263,9 @@ fn read_cpp() {
     assert_eq!(cpp.files, 1);
     assert_eq!(cpp.total_lines, 27);
     assert_eq!(cpp.blank_lines, 7);
-    assert_eq!(cpp.functions, 2);
-    assert_eq!(cpp.variables, 4);
-    assert_eq!(cpp.loops, 4);
+    assert_eq!(cpp.operations.get(&QType::Functions).unwrap(), &2);
+    assert_eq!(cpp.operations.get(&QType::Variables).unwrap(), &4);
+    assert_eq!(cpp.operations.get(&QType::Loops).unwrap(), &4);
 }
 
 #[test]
@@ -289,9 +278,9 @@ fn read_c() {
     assert_eq!(c.files, 1);
     assert_eq!(c.total_lines, 22);
     assert_eq!(c.blank_lines, 6);
-    assert_eq!(c.functions, 2);
-    assert_eq!(c.variables, 4);
-    assert_eq!(c.loops, 3);
+    assert_eq!(c.operations.get(&QType::Functions).unwrap(), &2);
+    assert_eq!(c.operations.get(&QType::Variables).unwrap(), &4);
+    assert_eq!(c.operations.get(&QType::Loops).unwrap(), &3);
 }
 
 #[test]
@@ -305,7 +294,7 @@ fn read_zig() {
     assert_eq!(zig.files, 1);
     assert_eq!(zig.total_lines, 27);
     assert_eq!(zig.blank_lines, 5);
-    assert_eq!(zig.functions, 2);
-    assert_eq!(zig.variables, 9);
-    assert_eq!(zig.loops, 4);
+    assert_eq!(zig.operations.get(&QType::Functions).unwrap(), &2);
+    assert_eq!(zig.operations.get(&QType::Variables).unwrap(), &9);
+    assert_eq!(zig.operations.get(&QType::Loops).unwrap(), &4);
 }

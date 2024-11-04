@@ -31,35 +31,37 @@ lang_struct!(Toml, ".toml");
 lang_struct!(Xml, ".xml");
 lang_struct!(Yaml, ".yaml", ".yml");
 
+use crate::language_utils::QType::*;
+use crate::language_utils::Operation;
 lang_struct!(
     Rust,
     ending ".rs",
     ts tree_sitter_rust,
-    loops "(for_expression) (while_expression) (loop_expression)",
-    functions "(function_item)",
-    variables "(let_declaration) (const_item) (static_item)",
+    Loops; "(for_expression) (while_expression) (loop_expression)",
+    Functions; "(function_item)",
+    Variables; "(let_declaration) (const_item) (static_item)"
 );
 lang_struct!(
     Cpp,
     endings (".cpp", ".hpp", ".cc", ".hh"),
     ts tree_sitter_cpp,
-    loops "(for_range_loop) (for_statement) (while_statement) (do_statement)",
-    functions "(function_definition)",
-    variables "(declaration)",
+    Loops; "(for_range_loop) (for_statement) (while_statement) (do_statement)",
+    Functions; "(function_definition)",
+    Variables; "(declaration)"
 );
 lang_struct!(
     C,
     endings (".c", ".h"),
     ts tree_sitter_c,
-    loops "(for_statement) (while_statement) (do_statement)",
-    functions "(function_definition)",
-    variables "(declaration)",
+    Loops; "(for_statement) (while_statement) (do_statement)",
+    Functions; "(function_definition)",
+    Variables; "(declaration)"
 );
 lang_struct!(
     Zig,
     ending ".zig",
     ts tree_sitter_zig,
-    loops "(for_statement) (for_expression) (while_statement) (while_expression)",
-    functions "(function_declaration)",
-    variables "(variable_declaration)",
+    Loops; "(for_statement) (for_expression) (while_statement) (while_expression)",
+    Functions; "(function_declaration)",
+    Variables; "(variable_declaration)"
 );
