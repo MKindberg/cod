@@ -11,6 +11,7 @@ use tree_sitter as TS;
 use language_utils::QType;
 
 struct Stats {
+    name: String,
     files: usize,
     total_lines: usize,
     blank_lines: usize,
@@ -18,8 +19,9 @@ struct Stats {
 }
 
 impl Stats {
-    fn new() -> Self {
+    fn new(name: &str) -> Self {
         let stats = Self {
+            name: name.to_string(),
             files: 0,
             total_lines: 0,
             blank_lines: 0,
@@ -66,10 +68,10 @@ impl Stats {
         println!("{:-<width$}", "", width = 7 * 15);
     }
 
-    fn print(&self, name: &str) {
+    fn print(&self) {
         println!(
             "{:<15}{:<15}{:<15}{:<15}{:<15}{:<15}{:<15}",
-            name,
+            self.name,
             self.files,
             self.total_lines,
             self.blank_lines,
@@ -78,8 +80,8 @@ impl Stats {
             self.operations.get(&QType::Loops).unwrap_or(&0),
         );
     }
-    fn print_detailed(&self, name: &str) {
-        println!("*** {} ***", name);
+    fn print_detailed(&self) {
+        println!("*** {} ***", self.name);
         println!("Number of files: {}", self.files);
         println!("Total lines: {}", self.total_lines);
         println!("Blank lines: {}", self.blank_lines);
@@ -99,13 +101,13 @@ fn parse_file(
             let Ok(content) = fs::read_to_string(filename) else {
                 let name = "Binary";
                 if !language_map.contains_key(name) {
-                    language_map.insert(name.to_string(), Stats::new());
+                    language_map.insert(name.to_string(), Stats::new(name));
                 }
                 language_map.get_mut(name).unwrap().files += 1;
                 return;
             };
             if !language_map.contains_key(l.name()) {
-                language_map.insert(l.name().to_string(), Stats::new());
+                language_map.insert(l.name().to_string(), Stats::new(l.name()));
             }
             language_map.get_mut(l.name()).unwrap().update(&content, l);
             l.filename_callback(filename);
@@ -206,15 +208,21 @@ fn main() {
     }
 
     Stats::print_header();
-    for (k, v) in language_map.iter() {
-        v.print(k);
+
+    let mut stats = vec![];
+    for v in language_map.values() {
+        stats.push(v);
+    }
+    stats.sort_by_key(|s| s.name.clone());
+    for s in stats.iter() {
+        s.print();
     }
     println!();
-    for (k, v) in language_map.iter() {
-        if wanted_langs.contains(&k.to_lowercase()) {
-            v.print_detailed(k);
+    for s in stats.iter() {
+        if wanted_langs.contains(&s.name.to_lowercase()) {
+            s.print_detailed();
             for l in languages.iter() {
-                if k.to_lowercase() == l.name().to_lowercase() {
+                if s.name.to_lowercase() == l.name().to_lowercase() {
                     l.print();
                 }
             }
