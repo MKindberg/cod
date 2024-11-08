@@ -125,8 +125,10 @@ fn parse_dir(file_list: &mut Vec<String>, ignore_list: &mut Vec<glob::Pattern>, 
                 if l.starts_with('#') || line.len() == 0 {
                     continue;
                 }
-                let s: String =
-                    path.parent().unwrap().to_str().unwrap().to_string() + "/" + l + "*";
+                let mut s: String = path.parent().unwrap().to_str().unwrap().to_string() + "/" + l;
+                if !s.ends_with("*") {
+                    s += "*";
+                }
                 let pat = glob::Pattern::new(s.trim_start_matches("./")).unwrap();
                 ignore_list.push(pat);
             }
