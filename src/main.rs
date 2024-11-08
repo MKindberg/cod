@@ -78,6 +78,15 @@ impl Stats {
             self.operations.get(&QType::Loops).unwrap_or(&0),
         );
     }
+    fn print_detailed(&self, name: &str) {
+        println!("*** {} ***", name);
+        println!("Number of files: {}", self.files);
+        println!("Total lines: {}", self.total_lines);
+        println!("Blank lines: {}", self.blank_lines);
+        for (k, v) in &self.operations {
+            println!("{:?}: {}", k, v);
+        }
+    }
 }
 
 fn parse_file(
@@ -198,10 +207,16 @@ fn main() {
     for (k, v) in language_map.iter() {
         v.print(k);
     }
-    for l in languages.iter() {
-        if wanted_langs.contains(&l.name().to_lowercase()) {
+    println!();
+    for (k, v) in language_map.iter() {
+        if wanted_langs.contains(&k.to_lowercase()) {
+            v.print_detailed(k);
+            for l in languages.iter() {
+                if k.to_lowercase() == l.name().to_lowercase() {
+                    l.print();
+                }
+            }
             println!();
-            l.print();
         }
     }
 }

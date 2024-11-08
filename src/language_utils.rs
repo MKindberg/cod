@@ -71,7 +71,7 @@ macro_rules! lang_vec {
     };
 }
 
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Eq, Hash, PartialEq, Debug)]
 pub enum QType {
     Loops,
     Functions,
