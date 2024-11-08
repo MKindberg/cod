@@ -65,7 +65,7 @@ impl Stats {
             "{:15}{:15}{:15}{:15}{:15}{:15}{:15}",
             "Language", "Files", "Total lines", "Blank lines", "Functions", "Variables", "Loops",
         );
-        println!("{:-<width$}", "", width = 7 * 15);
+        println!("{:=<width$}", "", width = 7 * 15);
     }
 
     fn print(&self) {
@@ -214,9 +214,24 @@ fn main() {
         stats.push(v);
     }
     stats.sort_by_key(|s| s.name.clone());
+    let mut total = Stats::new("Total");
+    total.operations.insert(QType::Functions, 0);
+    total.operations.insert(QType::Variables, 0);
+    total.operations.insert(QType::Loops, 0);
     for s in stats.iter() {
         s.print();
+        total.files += s.files;
+        total.total_lines += s.total_lines;
+        total.blank_lines += s.blank_lines;
+        *total.operations.get_mut(&QType::Functions).unwrap() +=
+            s.operations.get(&QType::Functions).unwrap_or(&0);
+        *total.operations.get_mut(&QType::Variables).unwrap() +=
+            s.operations.get(&QType::Variables).unwrap_or(&0);
+        *total.operations.get_mut(&QType::Loops).unwrap() +=
+            s.operations.get(&QType::Loops).unwrap_or(&0);
     }
+    println!("{:-<width$}", "", width = 7 * 15);
+    total.print();
     println!();
     for s in stats.iter() {
         if wanted_langs.contains(&s.name.to_lowercase()) {
