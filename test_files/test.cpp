@@ -1,6 +1,8 @@
 #include <array>
 
-int add(int a, int b) { return a + b; }
+#define pi 3.14
+
+template <typename T> T add(T a, T b) { return a + b; }
 
 int global = 1;
 

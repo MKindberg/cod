@@ -301,11 +301,13 @@ fn read_cpp() {
     assert!(language_map.contains_key("Cpp"));
     let cpp = language_map.get("Cpp").unwrap();
     assert_eq!(cpp.files, 1);
-    assert_eq!(cpp.total_lines, 27);
-    assert_eq!(cpp.blank_lines, 7);
+    assert_eq!(cpp.total_lines, 29);
+    assert_eq!(cpp.blank_lines, 8);
     assert_eq!(cpp.operations.get(&QType::Functions).unwrap(), &2);
     assert_eq!(cpp.operations.get(&QType::Variables).unwrap(), &4);
     assert_eq!(cpp.operations.get(&QType::Loops).unwrap(), &4);
+    assert_eq!(cpp.operations.get(&QType::Templates).unwrap(), &1);
+    assert_eq!(cpp.operations.get(&QType::Defines).unwrap(), &1);
 }
 
 #[test]

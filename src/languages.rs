@@ -49,7 +49,9 @@ lang_struct!(
     ts tree_sitter_cpp,
     Loops; "(for_range_loop) (for_statement) (while_statement) (do_statement)",
     Functions; "(function_definition)",
-    Variables; "(declaration)"
+    Variables; "(declaration)",
+    Templates; "(template_declaration)",
+    Defines; "(preproc_def)"
 );
 lang_struct!(
     C,

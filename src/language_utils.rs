@@ -76,6 +76,8 @@ pub enum QType {
     Loops,
     Functions,
     Variables,
+    Templates,
+    Defines,
 }
 
 pub struct Operation {
