@@ -24,15 +24,17 @@ pub fn get_languages() -> Vec<Box<dyn Language>> {
 }
 
 lang_struct!(Json, ".json");
-lang_struct!(Makefile, "Makefile", "makefile");
+lang_struct!(Makefile, "Makefile", "makefile", ".make");
+lang_struct!(CMake, "CMakeLists.txt", ".cmake");
+lang_struct!(Ninja, ".ninja");
 lang_struct!(Markdown, ".md");
 lang_struct!(Text, ".txt");
 lang_struct!(Toml, ".toml");
 lang_struct!(Xml, ".xml");
 lang_struct!(Yaml, ".yaml", ".yml");
 
-use crate::language_utils::QType::*;
 use crate::language_utils::Operation;
+use crate::language_utils::QType::*;
 lang_struct!(
     Rust,
     ending ".rs",
