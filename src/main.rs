@@ -69,15 +69,21 @@ impl Stats {
     }
 
     fn print(&self) {
+        let functions = self
+            .operations
+            .get(&QType::Functions)
+            .map_or("-".to_string(), |n| n.to_string());
+        let variables = self
+            .operations
+            .get(&QType::Variables)
+            .map_or("-".to_string(), |n| n.to_string());
+        let loops = self
+            .operations
+            .get(&QType::Loops)
+            .map_or("-".to_string(), |n| n.to_string());
         println!(
             "{:<15}{:<15}{:<15}{:<15}{:<15}{:<15}{:<15}",
-            self.name,
-            self.files,
-            self.total_lines,
-            self.blank_lines,
-            self.operations.get(&QType::Functions).unwrap_or(&0),
-            self.operations.get(&QType::Variables).unwrap_or(&0),
-            self.operations.get(&QType::Loops).unwrap_or(&0),
+            self.name, self.files, self.total_lines, self.blank_lines, functions, variables, loops,
         );
     }
     fn print_detailed(&self) {
