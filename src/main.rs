@@ -176,6 +176,12 @@ fn main() {
                 .action(clap::ArgAction::Append),
         )
         .arg(
+            Arg::new("no-summary")
+                .long("no-summary")
+                .help("Don't show summary, can be useful with -l")
+                .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
             Arg::new("files")
                 .action(clap::ArgAction::Append)
                 .default_value("."),
@@ -197,6 +203,7 @@ fn main() {
         .unwrap_or_default()
         .cloned()
         .collect::<Vec<String>>();
+    let show_summary = !*matches.get_one::<bool>("no-summary").unwrap();
 
     for f in file_args {
         if std::path::Path::new(&f).is_file() {
@@ -216,32 +223,34 @@ fn main() {
         parse_file(&mut languages, &mut language_map, &file);
     }
 
-    Stats::print_header();
-
     let mut stats = vec![];
     for v in language_map.values() {
         stats.push(v);
     }
-    stats.sort_by_key(|s| s.name.clone());
-    let mut total = Stats::new("Total");
-    total.operations.insert(QType::Functions, 0);
-    total.operations.insert(QType::Variables, 0);
-    total.operations.insert(QType::Loops, 0);
-    for s in stats.iter() {
-        s.print();
-        total.files += s.files;
-        total.total_lines += s.total_lines;
-        total.blank_lines += s.blank_lines;
-        *total.operations.get_mut(&QType::Functions).unwrap() +=
-            s.operations.get(&QType::Functions).unwrap_or(&0);
-        *total.operations.get_mut(&QType::Variables).unwrap() +=
-            s.operations.get(&QType::Variables).unwrap_or(&0);
-        *total.operations.get_mut(&QType::Loops).unwrap() +=
-            s.operations.get(&QType::Loops).unwrap_or(&0);
+    if show_summary {
+        Stats::print_header();
+
+        stats.sort_by_key(|s| s.name.clone());
+        let mut total = Stats::new("Total");
+        total.operations.insert(QType::Functions, 0);
+        total.operations.insert(QType::Variables, 0);
+        total.operations.insert(QType::Loops, 0);
+        for s in stats.iter() {
+            s.print();
+            total.files += s.files;
+            total.total_lines += s.total_lines;
+            total.blank_lines += s.blank_lines;
+            *total.operations.get_mut(&QType::Functions).unwrap() +=
+                s.operations.get(&QType::Functions).unwrap_or(&0);
+            *total.operations.get_mut(&QType::Variables).unwrap() +=
+                s.operations.get(&QType::Variables).unwrap_or(&0);
+            *total.operations.get_mut(&QType::Loops).unwrap() +=
+                s.operations.get(&QType::Loops).unwrap_or(&0);
+        }
+        println!("{:-<width$}", "", width = 7 * 15);
+        total.print();
+        println!();
     }
-    println!("{:-<width$}", "", width = 7 * 15);
-    total.print();
-    println!();
     for s in stats.iter() {
         if wanted_langs.contains(&s.name.to_lowercase()) {
             s.print_detailed();
