@@ -158,18 +158,21 @@ fn main() {
     let mut file_list = vec![];
 
     let matches = Command::new("cod")
+        .name("COD")
         .author("mkindberg")
-        .about("Count code related metrics in files")
+        .about("Count lines other code related metrics in files")
         .arg(
             Arg::new("ignore")
                 .short('i')
                 .long("ignore")
+                .help("Glob expression for files to ignore. Can be used multiple times.")
                 .action(clap::ArgAction::Append),
         )
         .arg(
             Arg::new("language")
                 .short('l')
                 .long("language")
+                .help("Language to show detailed information for. Can be used multiple times.")
                 .action(clap::ArgAction::Append),
         )
         .arg(
