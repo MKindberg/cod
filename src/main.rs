@@ -219,7 +219,7 @@ fn main() {
         .cloned()
         .collect();
 
-    for file in file_list {
+    for file in &file_list {
         parse_file(&mut languages, &mut language_map, &file);
     }
 
@@ -251,12 +251,29 @@ fn main() {
         total.print();
         println!();
     }
+    let mut other_endings = vec![];
+    for file in file_list {
+        for l in languages.iter() {
+            if l.name() == "Other" {
+                if let Some(ext) = std::path::Path::new(&file).extension() {
+                    let e = ext.to_str().unwrap().to_string();
+                    if !other_endings.contains(&e) {
+                        other_endings.push(e);
+                    }
+                }
+            }
+            if l.matches_filename(&file) {
+                break;
+            }
+        }
+    }
     for s in stats.iter() {
         if wanted_langs.contains(&s.name.to_lowercase()) {
             s.print_detailed();
-            for l in languages.iter() {
-                if s.name.to_lowercase() == l.name().to_lowercase() {
-                    l.print();
+            if s.name.to_lowercase() == "other" {
+                println!("Other file endings: ");
+                for e in &other_endings {
+                    println!("  {}", e);
                 }
             }
             println!();
