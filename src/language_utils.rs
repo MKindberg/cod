@@ -2,7 +2,7 @@ use tree_sitter as TS;
 
 #[macro_export]
 macro_rules! lang_struct {
-    ($name:ident, $($file_ending:expr),*) => {
+    ($language_vec: expr, $name:ident, $($file_ending:expr),*) => {
         pub struct $name {}
         impl Language for $name {
             fn name(&self) -> &str {
@@ -15,21 +15,23 @@ macro_rules! lang_struct {
             return false;
             }
         }
+        $language_vec.push(Box::new($name {}));
     };
 
-    ($name:ident,
+    ($language_vec:expr, $name:ident,
         ending $file_ending:expr,
         ts $ts:ident,
         $($qtype:expr; $query:expr),+
         ) => {
             lang_struct!(
+                $language_vec,
                 $name,
                 endings ($file_ending),
                 ts $ts,
                 $($qtype; $query),+
             );
     };
-    ($name:ident,
+    ($language_vec:expr, $name:ident,
         endings ($($file_endings:expr),+),
         ts $ts:ident,
         $($qtype:expr; $query:expr),+
@@ -56,18 +58,7 @@ macro_rules! lang_struct {
             operations
         }
     }
-    };
-}
-#[macro_export]
-macro_rules! lang_vec {
-    ( $($x:expr),* ) => {
-        {
-            let mut temp_vec: Vec<Box<dyn Language>> = Vec::new();
-            $(
-                temp_vec.push(Box::new($x));
-            )*
-            temp_vec
-        }
+    $language_vec.push(Box::new($name {}));
     };
 }
 

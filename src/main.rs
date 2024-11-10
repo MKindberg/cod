@@ -154,7 +154,7 @@ fn parse_dir(file_list: &mut Vec<String>, ignore_list: &mut Vec<glob::Pattern>, 
 
 fn main() {
     let mut language_map: HashMap<String, Stats> = HashMap::new();
-    let mut languages = languages::get_languages();
+    let mut languages = languages::languages();
     let mut file_list = vec![];
 
     let matches = Command::new("cod")
@@ -299,7 +299,7 @@ fn next_node<'a>(cursor: &mut TS::TreeCursor<'a>) -> Option<TS::Node<'a>> {
 #[test]
 fn read_rust() {
     let mut language_map: HashMap<String, Stats> = HashMap::new();
-    let mut languages = languages::get_languages();
+    let mut languages = languages::languages();
     parse_file(&mut languages, &mut language_map, "test_files/test.rs");
     assert!(language_map.contains_key("Rust"));
     let rust = language_map.get("Rust").unwrap();
@@ -314,7 +314,7 @@ fn read_rust() {
 #[test]
 fn read_cpp() {
     let mut language_map: HashMap<String, Stats> = HashMap::new();
-    let mut languages = languages::get_languages();
+    let mut languages = languages::languages();
     parse_file(&mut languages, &mut language_map, "test_files/test.cpp");
     assert!(language_map.contains_key("Cpp"));
     let cpp = language_map.get("Cpp").unwrap();
@@ -331,7 +331,7 @@ fn read_cpp() {
 #[test]
 fn read_c() {
     let mut language_map: HashMap<String, Stats> = HashMap::new();
-    let mut languages = languages::get_languages();
+    let mut languages = languages::languages();
     parse_file(&mut languages, &mut language_map, "test_files/test.c");
     assert!(language_map.contains_key("C"));
     let c = language_map.get("C").unwrap();
@@ -347,7 +347,7 @@ fn read_c() {
 fn read_zig() {
     print_nodes("test_files/test.zig", tree_sitter_zig::LANGUAGE.into());
     let mut language_map: HashMap<String, Stats> = HashMap::new();
-    let mut languages = languages::get_languages();
+    let mut languages = languages::languages();
     parse_file(&mut languages, &mut language_map, "test_files/test.zig");
     assert!(language_map.contains_key("Zig"));
     let zig = language_map.get("Zig").unwrap();
