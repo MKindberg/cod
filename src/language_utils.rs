@@ -85,6 +85,4 @@ pub trait Language {
     fn queries(&self) -> Vec<Operation> {
         vec![]
     }
-    fn filename_callback(&mut self, _: &str) {}
-    fn print(&self) {}
 }

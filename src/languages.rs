@@ -1,5 +1,3 @@
-mod other;
-
 use crate::lang_struct;
 use crate::language_utils::Language;
 
@@ -66,6 +64,6 @@ pub fn languages() -> Vec<Box<dyn Language>> {
         Variables; "(variable_declaration)"
     );
 
-    l.push(Box::new(other::Other::new()));
+    lang_struct!(l, Other, "");
     return l;
 }

@@ -31,7 +31,7 @@ impl Stats {
         return stats;
     }
 
-    fn update(&mut self, content: &str, language: &mut Box<dyn Language>) {
+    fn update(&mut self, content: &str, language: &Box<dyn Language>) {
         if let Some(lang) = language.language() {
             let mut parser = TS::Parser::new();
             parser.set_language(&lang).unwrap();
@@ -98,7 +98,7 @@ impl Stats {
 }
 
 fn parse_file(
-    languages: &mut Vec<Box<dyn Language>>,
+    languages: &Vec<Box<dyn Language>>,
     language_map: &mut HashMap<String, Stats>,
     filename: &str,
 ) {
@@ -116,7 +116,6 @@ fn parse_file(
                 language_map.insert(l.name().to_string(), Stats::new(l.name()));
             }
             language_map.get_mut(l.name()).unwrap().update(&content, l);
-            l.filename_callback(filename);
             break;
         }
     }
@@ -154,7 +153,7 @@ fn parse_dir(file_list: &mut Vec<String>, ignore_list: &mut Vec<glob::Pattern>, 
 
 fn main() {
     let mut language_map: HashMap<String, Stats> = HashMap::new();
-    let mut languages = languages::languages();
+    let languages = languages::languages();
     let mut file_list = vec![];
 
     let matches = Command::new("cod")
@@ -220,7 +219,7 @@ fn main() {
         .collect();
 
     for file in &file_list {
-        parse_file(&mut languages, &mut language_map, &file);
+        parse_file(&languages, &mut language_map, &file);
     }
 
     let mut stats = vec![];
