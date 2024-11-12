@@ -5,11 +5,14 @@ use clap::{Arg, Command};
 use language_utils::Language;
 use std::collections::hash_map::HashMap;
 use std::fs;
+use std::sync::{Arc, Mutex};
+use std::thread;
 use streaming_iterator::StreamingIterator;
 use tree_sitter as TS;
 
 use language_utils::QType;
 
+#[derive(Clone)]
 struct Stats {
     name: String,
     files: usize,
@@ -29,6 +32,20 @@ impl Stats {
         };
 
         return stats;
+    }
+
+    fn add(&mut self, other: &Stats) {
+        assert!(self.name == other.name);
+        self.files += other.files;
+        self.total_lines += other.total_lines;
+        self.blank_lines += other.blank_lines;
+        for (k, v) in &other.operations {
+            if self.operations.contains_key(&k) {
+                *self.operations.get_mut(&k).unwrap() += v;
+            } else {
+                self.operations.insert(k.clone(), *v);
+            }
+        }
     }
 
     fn update(&mut self, content: &str, language: &Box<dyn Language>) {
@@ -97,6 +114,16 @@ impl Stats {
     }
 }
 
+fn parse_files(
+    languages: Arc<Vec<Box<dyn Language>>>,
+    language_map: &mut Arc<Mutex<HashMap<String, Stats>>>,
+    file_list: &[String],
+) {
+    let mut m = language_map.lock();
+    for file in file_list {
+        parse_file(&languages, m.as_mut().unwrap(), &file);
+    }
+}
 fn parse_file(
     languages: &Vec<Box<dyn Language>>,
     language_map: &mut HashMap<String, Stats>,
@@ -153,7 +180,7 @@ fn parse_dir(file_list: &mut Vec<String>, ignore_list: &mut Vec<glob::Pattern>, 
 
 fn main() {
     let mut language_map: HashMap<String, Stats> = HashMap::new();
-    let languages = languages::languages();
+    let languages = Arc::new(languages::languages());
     let mut file_list = vec![];
 
     let matches = Command::new("cod")
@@ -181,6 +208,13 @@ fn main() {
                 .action(clap::ArgAction::SetTrue),
         )
         .arg(
+            Arg::new("jobs")
+                .short('j')
+                .long("jobs")
+                .default_value("1")
+                .value_parser(clap::value_parser!(usize)),
+        )
+        .arg(
             Arg::new("files")
                 .action(clap::ArgAction::Append)
                 .default_value("."),
@@ -203,6 +237,7 @@ fn main() {
         .cloned()
         .collect::<Vec<String>>();
     let show_summary = !*matches.get_one::<bool>("no-summary").unwrap();
+    let jobs: usize = *matches.get_one::<usize>("jobs").unwrap();
 
     for f in file_args {
         if std::path::Path::new(&f).is_file() {
@@ -218,8 +253,37 @@ fn main() {
         .cloned()
         .collect();
 
-    for file in &file_list {
+    let list_sizes = file_list.len() / jobs;
+    let mut lang_maps = vec![];
+    for _ in 0..jobs - 1 {
+        lang_maps.push(Arc::new(Mutex::new(HashMap::<String, Stats>::new())));
+    }
+    let mut handles: Vec<thread::JoinHandle<()>> = vec![];
+    for i in 0..jobs - 1 {
+        let langs = languages.clone();
+        let mut lang_map = lang_maps[i].clone();
+        let fl = file_list[i * list_sizes..(i + 1) * list_sizes].to_vec();
+        let handle = thread::spawn(move || {
+            parse_files(langs, &mut lang_map, &fl);
+        });
+        handles.push(handle);
+    }
+
+    for file in &file_list[(jobs - 1) * list_sizes..] {
         parse_file(&languages, &mut language_map, &file);
+    }
+    for h in handles {
+        h.join().unwrap();
+    }
+
+    for l in lang_maps {
+        for (k, v) in l.lock().as_ref().unwrap().iter() {
+            if language_map.contains_key(k) {
+                language_map.get_mut(k).unwrap().add(v);
+            } else {
+                language_map.insert(k.to_string(), v.clone());
+            }
+        }
     }
 
     let mut stats = vec![];
@@ -312,65 +376,73 @@ fn next_node<'a>(cursor: &mut TS::TreeCursor<'a>) -> Option<TS::Node<'a>> {
     }
 }
 
-#[test]
-fn read_rust() {
-    let mut language_map: HashMap<String, Stats> = HashMap::new();
-    let mut languages = languages::languages();
-    parse_file(&mut languages, &mut language_map, "test_files/test.rs");
-    assert!(language_map.contains_key("Rust"));
-    let rust = language_map.get("Rust").unwrap();
-    assert_eq!(rust.files, 1);
-    assert_eq!(rust.total_lines, 25);
-    assert_eq!(rust.blank_lines, 2);
-    assert_eq!(rust.operations.get(&QType::Functions).unwrap(), &2);
-    assert_eq!(rust.operations.get(&QType::Variables).unwrap(), &4);
-    assert_eq!(rust.operations.get(&QType::Loops).unwrap(), &3);
-}
+#[cfg(test)]
+mod test {
+    use super::*;
 
-#[test]
-fn read_cpp() {
-    let mut language_map: HashMap<String, Stats> = HashMap::new();
-    let mut languages = languages::languages();
-    parse_file(&mut languages, &mut language_map, "test_files/test.cpp");
-    assert!(language_map.contains_key("Cpp"));
-    let cpp = language_map.get("Cpp").unwrap();
-    assert_eq!(cpp.files, 1);
-    assert_eq!(cpp.total_lines, 29);
-    assert_eq!(cpp.blank_lines, 8);
-    assert_eq!(cpp.operations.get(&QType::Functions).unwrap(), &2);
-    assert_eq!(cpp.operations.get(&QType::Variables).unwrap(), &4);
-    assert_eq!(cpp.operations.get(&QType::Loops).unwrap(), &4);
-    assert_eq!(cpp.operations.get(&QType::Templates).unwrap(), &1);
-    assert_eq!(cpp.operations.get(&QType::Defines).unwrap(), &1);
-}
+    fn lang_arc() -> Arc<Vec<Box<dyn Language>>> {
+        Arc::new(languages::languages())
+    }
+    #[test]
+    fn read_rust() {
+        let mut language_map: HashMap<String, Stats> = HashMap::new();
+        let mut languages = lang_arc();
+        parse_file(&mut languages, &mut language_map, "test_files/test.rs");
+        assert!(language_map.contains_key("Rust"));
+        let rust = language_map.get("Rust").unwrap();
+        assert_eq!(rust.files, 1);
+        assert_eq!(rust.total_lines, 25);
+        assert_eq!(rust.blank_lines, 2);
+        assert_eq!(rust.operations.get(&QType::Functions).unwrap(), &2);
+        assert_eq!(rust.operations.get(&QType::Variables).unwrap(), &4);
+        assert_eq!(rust.operations.get(&QType::Loops).unwrap(), &3);
+    }
 
-#[test]
-fn read_c() {
-    let mut language_map: HashMap<String, Stats> = HashMap::new();
-    let mut languages = languages::languages();
-    parse_file(&mut languages, &mut language_map, "test_files/test.c");
-    assert!(language_map.contains_key("C"));
-    let c = language_map.get("C").unwrap();
-    assert_eq!(c.files, 1);
-    assert_eq!(c.total_lines, 22);
-    assert_eq!(c.blank_lines, 6);
-    assert_eq!(c.operations.get(&QType::Functions).unwrap(), &2);
-    assert_eq!(c.operations.get(&QType::Variables).unwrap(), &4);
-    assert_eq!(c.operations.get(&QType::Loops).unwrap(), &3);
-}
+    #[test]
+    fn read_cpp() {
+        let mut language_map: HashMap<String, Stats> = HashMap::new();
+        let mut languages = lang_arc();
+        parse_file(&mut languages, &mut language_map, "test_files/test.cpp");
+        assert!(language_map.contains_key("Cpp"));
+        let cpp = language_map.get("Cpp").unwrap();
+        assert_eq!(cpp.files, 1);
+        assert_eq!(cpp.total_lines, 29);
+        assert_eq!(cpp.blank_lines, 8);
+        assert_eq!(cpp.operations.get(&QType::Functions).unwrap(), &2);
+        assert_eq!(cpp.operations.get(&QType::Variables).unwrap(), &4);
+        assert_eq!(cpp.operations.get(&QType::Loops).unwrap(), &4);
+        assert_eq!(cpp.operations.get(&QType::Templates).unwrap(), &1);
+        assert_eq!(cpp.operations.get(&QType::Defines).unwrap(), &1);
+    }
 
-#[test]
-fn read_zig() {
-    print_nodes("test_files/test.zig", tree_sitter_zig::LANGUAGE.into());
-    let mut language_map: HashMap<String, Stats> = HashMap::new();
-    let mut languages = languages::languages();
-    parse_file(&mut languages, &mut language_map, "test_files/test.zig");
-    assert!(language_map.contains_key("Zig"));
-    let zig = language_map.get("Zig").unwrap();
-    assert_eq!(zig.files, 1);
-    assert_eq!(zig.total_lines, 27);
-    assert_eq!(zig.blank_lines, 5);
-    assert_eq!(zig.operations.get(&QType::Functions).unwrap(), &2);
-    assert_eq!(zig.operations.get(&QType::Variables).unwrap(), &9);
-    assert_eq!(zig.operations.get(&QType::Loops).unwrap(), &4);
+    #[test]
+    fn read_c() {
+        let mut language_map: HashMap<String, Stats> = HashMap::new();
+        let mut languages = lang_arc();
+        parse_file(&mut languages, &mut language_map, "test_files/test.c");
+        assert!(language_map.contains_key("C"));
+        let c = language_map.get("C").unwrap();
+        assert_eq!(c.files, 1);
+        assert_eq!(c.total_lines, 22);
+        assert_eq!(c.blank_lines, 6);
+        assert_eq!(c.operations.get(&QType::Functions).unwrap(), &2);
+        assert_eq!(c.operations.get(&QType::Variables).unwrap(), &4);
+        assert_eq!(c.operations.get(&QType::Loops).unwrap(), &3);
+    }
+
+    #[test]
+    fn read_zig() {
+        print_nodes("test_files/test.zig", tree_sitter_zig::LANGUAGE.into());
+        let mut language_map: HashMap<String, Stats> = HashMap::new();
+        let mut languages = lang_arc();
+        parse_file(&mut languages, &mut language_map, "test_files/test.zig");
+        assert!(language_map.contains_key("Zig"));
+        let zig = language_map.get("Zig").unwrap();
+        assert_eq!(zig.files, 1);
+        assert_eq!(zig.total_lines, 27);
+        assert_eq!(zig.blank_lines, 5);
+        assert_eq!(zig.operations.get(&QType::Functions).unwrap(), &2);
+        assert_eq!(zig.operations.get(&QType::Variables).unwrap(), &9);
+        assert_eq!(zig.operations.get(&QType::Loops).unwrap(), &4);
+    }
 }

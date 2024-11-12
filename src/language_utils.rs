@@ -62,7 +62,7 @@ macro_rules! lang_struct {
     };
 }
 
-#[derive(Eq, Hash, PartialEq, Debug)]
+#[derive(Eq, Hash, PartialEq, Clone, Debug)]
 pub enum QType {
     Loops,
     Functions,
@@ -76,7 +76,7 @@ pub struct Operation {
     pub query: String,
 }
 
-pub trait Language {
+pub trait Language: Send + Sync {
     fn matches_filename(&self, filename: &str) -> bool;
     fn name(&self) -> &str;
     fn language(&self) -> Option<TS::Language> {
