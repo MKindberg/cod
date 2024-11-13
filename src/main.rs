@@ -5,6 +5,8 @@ use clap::{Arg, Command};
 use language_utils::Language;
 use std::collections::hash_map::HashMap;
 use std::fs;
+use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use streaming_iterator::StreamingIterator;
@@ -116,13 +118,9 @@ impl Stats {
 
 fn parse_files(
     languages: Arc<Vec<Box<dyn Language>>>,
-    language_map: &mut Arc<Mutex<HashMap<String, Stats>>>,
+    language_map: &mut HashMap<String, Stats>,
     file_list: &[String],
 ) {
-    let mut m = language_map.lock();
-    for file in file_list {
-        parse_file(&languages, m.as_mut().unwrap(), &file);
-    }
 }
 fn parse_file(
     languages: &Vec<Box<dyn Language>>,
@@ -254,30 +252,25 @@ fn main() {
         .collect();
 
     let list_sizes = file_list.len() / jobs;
-    let mut lang_maps = vec![];
-    for _ in 0..jobs - 1 {
-        lang_maps.push(Arc::new(Mutex::new(HashMap::<String, Stats>::new())));
-    }
-    let mut handles: Vec<thread::JoinHandle<()>> = vec![];
+    let (tx, rx) = mpsc::channel();
     for i in 0..jobs - 1 {
         let langs = languages.clone();
-        let mut lang_map = lang_maps[i].clone();
         let fl = file_list[i * list_sizes..(i + 1) * list_sizes].to_vec();
-        let handle = thread::spawn(move || {
-            parse_files(langs, &mut lang_map, &fl);
+        let thread_tx = tx.clone();
+        thread::spawn(move || {
+            let mut res = HashMap::<String, Stats>::new();
+            for file in fl {
+                parse_file(&langs, &mut res, &file);
+            }
+            thread_tx.send(res).unwrap();
         });
-        handles.push(handle);
     }
 
     for file in &file_list[(jobs - 1) * list_sizes..] {
         parse_file(&languages, &mut language_map, &file);
     }
-    for h in handles {
-        h.join().unwrap();
-    }
-
-    for l in lang_maps {
-        for (k, v) in l.lock().as_ref().unwrap().iter() {
+    for _ in 0..jobs - 1 {
+        for (k, v) in rx.recv().unwrap().iter() {
             if language_map.contains_key(k) {
                 language_map.get_mut(k).unwrap().add(v);
             } else {
