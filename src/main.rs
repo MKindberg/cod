@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate lazy_static;
+
 mod language_utils;
 mod languages;
 
@@ -6,8 +9,7 @@ use language_utils::Language;
 use std::collections::hash_map::HashMap;
 use std::fs;
 use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 use streaming_iterator::StreamingIterator;
 use tree_sitter as TS;
@@ -61,12 +63,11 @@ impl Stats {
             let mut query_cursor = TS::QueryCursor::new();
 
             for query in language.queries() {
-                let q = TS::Query::new(&parser.language().unwrap(), &query.query).unwrap();
                 let matches = query_cursor
-                    .matches(&q, root_node, content.as_bytes())
+                    .matches(&query.query, root_node, content.as_bytes())
                     .count();
                 let count = self.operations.get(&query.qtype).unwrap_or(&0);
-                self.operations.insert(query.qtype, count + matches);
+                self.operations.insert(query.qtype.clone(), count + matches);
             }
         }
 

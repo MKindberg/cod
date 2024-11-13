@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use tree_sitter as TS;
 
 #[macro_export]
@@ -47,15 +48,21 @@ macro_rules! lang_struct {
             )+
             return false;
         }
-        fn language(&self) -> Option<TS::Language> {
-            Some($ts::LANGUAGE.into())
+        fn language(&self) -> &'static Option<TS::Language> {
+                lazy_static!{
+                static ref lang: Option<TS::Language> = Some($ts::LANGUAGE.into());
+                }
+                &lang
         }
-        fn queries(&self) -> Vec<Operation> {
-            let mut operations: Vec<Operation> = Vec::new();
-            $(
-                operations.push(Operation{qtype: $qtype, query: $query.to_string()});
-            )*
-            operations
+        fn queries(&self) -> &'static Vec<Operation> {
+            lazy_static!{
+                static ref operations: Vec<Operation> = vec![
+                $(
+                    Operation{qtype: $qtype, query: TS::Query::new(&TS::Language::from($ts::LANGUAGE), $query).unwrap()},
+                )*
+                ];
+            }
+            &operations
         }
     }
     $language_vec.push(Box::new($name {}));
@@ -73,16 +80,18 @@ pub enum QType {
 
 pub struct Operation {
     pub qtype: QType,
-    pub query: String,
+    pub query: TS::Query,
 }
 
 pub trait Language: Send + Sync {
     fn matches_filename(&self, filename: &str) -> bool;
     fn name(&self) -> &str;
-    fn language(&self) -> Option<TS::Language> {
-        None
+    fn language(&self) -> &'static Option<TS::Language> {
+        static NONE: Option<TS::Language> = None;
+        &NONE
     }
-    fn queries(&self) -> Vec<Operation> {
-        vec![]
+    fn queries(&self) -> &'static Vec<Operation> {
+        static V: Vec<Operation> = vec![];
+        return &V;
     }
 }
