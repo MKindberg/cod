@@ -48,11 +48,8 @@ macro_rules! lang_struct {
             )+
             return false;
         }
-        fn language(&self) -> &'static Option<TS::Language> {
-                lazy_static!{
-                static ref lang: Option<TS::Language> = Some($ts::LANGUAGE.into());
-                }
-                &lang
+        fn language(&self) -> Option<TS::Language> {
+            Some($ts::LANGUAGE.into())
         }
         fn queries(&self) -> &'static Vec<Operation> {
             lazy_static!{
@@ -86,9 +83,8 @@ pub struct Operation {
 pub trait Language: Send + Sync {
     fn matches_filename(&self, filename: &str) -> bool;
     fn name(&self) -> &str;
-    fn language(&self) -> &'static Option<TS::Language> {
-        static NONE: Option<TS::Language> = None;
-        &NONE
+    fn language(&self) -> Option<TS::Language> {
+        None
     }
     fn queries(&self) -> &'static Vec<Operation> {
         static V: Vec<Operation> = vec![];

@@ -117,12 +117,6 @@ impl Stats {
     }
 }
 
-fn parse_files(
-    languages: Arc<Vec<Box<dyn Language>>>,
-    language_map: &mut HashMap<String, Stats>,
-    file_list: &[String],
-) {
-}
 fn parse_file(
     languages: &Vec<Box<dyn Language>>,
     language_map: &mut HashMap<String, Stats>,
