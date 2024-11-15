@@ -246,6 +246,15 @@ fn main() {
         .cloned()
         .collect();
 
+    file_list.sort_by_key(|s| {
+        std::path::Path::new(s)
+            .extension()
+            .unwrap_or(std::ffi::OsStr::new(""))
+            .to_str()
+            .unwrap()
+            .to_string();
+    });
+
     let list_sizes = file_list.len() / jobs;
     let (tx, rx) = mpsc::channel();
     for i in 0..jobs - 1 {
