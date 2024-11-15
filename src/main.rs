@@ -179,7 +179,7 @@ fn main() {
     let matches = Command::new("cod")
         .name("COD")
         .author("mkindberg")
-        .about("Count lines other code related metrics in files")
+        .about("Count lines other code related metrics in files.")
         .arg(
             Arg::new("ignore")
                 .short('i')
@@ -197,7 +197,7 @@ fn main() {
         .arg(
             Arg::new("no-summary")
                 .long("no-summary")
-                .help("Don't show summary, can be useful with -l")
+                .help("Don't show summary, can be useful with -l.")
                 .action(clap::ArgAction::SetTrue),
         )
         .arg(
@@ -209,8 +209,8 @@ fn main() {
         )
         .arg(
             Arg::new("files")
+                .help("Files/directories to check, if no files/directories are given input will be read from stdin.")
                 .action(clap::ArgAction::Append)
-                .default_value("."),
         )
         .get_matches();
 
@@ -232,6 +232,16 @@ fn main() {
     let show_summary = !*matches.get_one::<bool>("no-summary").unwrap();
     let jobs: usize = *matches.get_one::<usize>("jobs").unwrap();
 
+    let file_args = if file_args.len() > 0 {
+        file_args
+    } else {
+        let mut files = vec![];
+        let stdin = std::io::stdin();
+        for line in stdin.lines() {
+            files.push(line.unwrap());
+        }
+        files
+    };
     for f in file_args {
         if std::path::Path::new(&f).is_file() {
             file_list.push(f);

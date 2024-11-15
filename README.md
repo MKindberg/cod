@@ -7,7 +7,7 @@ like the number of templates in C++ files.
 
 ## Usage
 
-Run the binary without any arguments and it will recursively traverse the current directory
+Run the binary with . as an arguments and it will recursively traverse the current directory
 (respecting .gitignore) and print data about the files it finds. To only consider specific
 files/directories they can be passed as arguments or -i (repeatedly) can be used to ignore
 certain files or directories.
@@ -16,7 +16,7 @@ For more detailed information about a language the -l option can be used.
 
 ## Example
 ```
-$ cod -l cpp
+$ cod . -l cpp
 Language       Files          Total lines    Blank lines    Functions      Variables      Loops
 =========================================================================================================
 C              1              22             6              2              4              3
